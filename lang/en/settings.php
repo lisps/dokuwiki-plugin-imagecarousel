@@ -2,7 +2,7 @@
 /**
  * english language file for imagecarousel plugin
  *
- * @author PeSt <peterstumm@gmx.de>
+ * @author lisps
  */
 
 // keys need to match the config setting name

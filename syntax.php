@@ -3,7 +3,7 @@
  * DokuWiki Plugin imagecarousel (Syntax Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @author  PeSt <peterstumm@gmx.de>
+ * @author  lisps
  */
 
 // must be run within Dokuwiki

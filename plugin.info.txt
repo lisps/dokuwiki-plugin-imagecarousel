@@ -1,6 +1,6 @@
 base   imagecarousel
-author PeSt
-email  peterstumm@gmx.de
+author lisps
+email  
 date   2016-02-02
 name   imagecarousel plugin
 desc   carousel for images

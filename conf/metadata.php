@@ -2,7 +2,7 @@
 /**
  * Options for the imagecarousel plugin
  *
- * @author PeSt <peterstumm@gmx.de>
+ * @author lisps
  */
 
 
