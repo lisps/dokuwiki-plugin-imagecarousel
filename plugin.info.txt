@@ -1,7 +1,7 @@
 base   imagecarousel
-author lisps
-email  
-date   2016-02-02
+author lisps, peterfromearth
+email  coder@peterfromearth.de
+date   2018-09-29
 name   imagecarousel plugin
-desc   carousel for images
+desc   carousel for images with imagebox
 url    https://dokuwiki.org/plugin:imagecarousel

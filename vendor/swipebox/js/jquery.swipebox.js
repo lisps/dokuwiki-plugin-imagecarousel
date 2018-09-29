@@ -1,4 +1,4 @@
-/*! Swipebox v1.4.1 | Constantin Saguin csag.co | MIT License | github.com/brutaldesign/swipebox */
+/*! Swipebox v1.4.4 | Constantin Saguin csag.co | MIT License | github.com/brutaldesign/swipebox */
 
 ;( function ( window, document, $, undefined ) {
 
@@ -18,21 +18,19 @@
 				beforeOpen: null,
 				afterOpen: null,
 				afterClose: null,
+				afterMedia: null,
 				nextSlide: null,
 				prevSlide: null,
 				loopAtEnd: false,
 				autoplayVideos: false,
 				queryStringData: {},
 				toggleClassOnLoad: '',
-				titleAttribute: 'title',
-				captionAttribute: 'data-caption'
+				selector: null
 			},
 
 			plugin = this,
 			elements = [], // slides array [ { href:'...', title:'...' }, ...],
 			$elem,
-			selector = elem.selector,
-			$selector = $( selector ),
 			isMobile = navigator.userAgent.match( /(iPad)|(iPhone)|(iPod)|(Android)|(PlayBook)|(BB10)|(BlackBerry)|(Opera Mini)|(IEMobile)|(webOS)|(MeeGo)/i ),
 			isTouch = isMobile !== null || document.createTouch !== undefined || ( 'ontouchstart' in window ) || ( 'onmsgesturechange' in window ) || navigator.msMaxTouchPoints,
 			supportSVG = !! document.createElementNS && !! document.createElementNS( 'http://www.w3.org/2000/svg', 'svg').createSVGRect,
@@ -78,7 +76,7 @@
 
 			} else {
 
-				$( document ).on( 'click', selector, function( event ) {
+				$( elem ).on( 'click', plugin.settings.selector, function( event ) {
 
 					// console.log( isTouch );
 
@@ -87,19 +85,21 @@
 						return false;
 					}
 
-					if ( ! $.isArray( elem ) ) {
-						ui.destroy();
-						$elem = $( selector );
-						ui.actions();
+					ui.destroy();
+
+					if ( plugin.settings.selector === null ) {
+						$elem = $( elem );
+					} else {
+						$elem = $( elem ).find( plugin.settings.selector );
 					}
 
 					elements = [];
-					var index , relType, relVal;
+					var index, relType, relVal;
 
 					// Allow for HTML5 compliant attribute before legacy use of rel
 					if ( ! relVal ) {
 						relType = 'data-rel';
-						relVal  = $( this ).attr( relType );
+						relVal = $( this ).attr( relType );
 					}
 
 					if ( ! relVal ) {
@@ -108,24 +108,18 @@
 					}
 
 					if ( relVal && relVal !== '' && relVal !== 'nofollow' ) {
-						$elem = $selector.filter( '[' + relType + '="' + relVal + '"]' );
-					} else {
-						$elem = $( selector );
+						$elem = $elem.filter( '[' + relType + '="' + relVal + '"]' );
 					}
 
 					$elem.each( function() {
 
 						var title = null,
-							caption = null,
 							href = null;
 
-						if ( $( this ).attr( plugin.settings.titleAttribute ) ) {
-							title = $( this ).attr( plugin.settings.titleAttribute );
+						if ( $( this ).attr( 'title' ) ) {
+							title = $( this ).attr( 'title' );
 						}
 
-						if ( $( this ).attr( plugin.settings.captionAttribute ) ) {
-							caption = $( this ).attr( plugin.settings.captionAttribute );
-						}
 
 						if ( $( this ).attr( 'href' ) ) {
 							href = $( this ).attr( 'href' );
@@ -133,8 +127,7 @@
 
 						elements.push( {
 							href: href,
-							title: title,
-							caption: caption
+							title: title
 						} );
 					} );
 
@@ -164,7 +157,7 @@
 				this.preloadMedia( index+1 );
 				this.preloadMedia( index-1 );
 				if ( plugin.settings.afterOpen ) {
-					plugin.settings.afterOpen();
+					plugin.settings.afterOpen(index);
 				}
 			},
 
@@ -478,7 +471,15 @@
 			 */
 			showBars : function () {
 				var bars = $( '#swipebox-top-bar, #swipebox-bottom-bar' );
-				bars.addClass( 'visible-bars' );
+				if ( this.doCssTrans() ) {
+					bars.addClass( 'visible-bars' );
+				} else {
+					$( '#swipebox-top-bar' ).animate( { top : 0 }, 500 );
+					$( '#swipebox-bottom-bar' ).animate( { bottom : 0 }, 500 );
+					setTimeout( function() {
+						bars.addClass( 'visible-bars' );
+					}, 1000 );
+				}
 			},
 
 			/**
@@ -486,7 +487,15 @@
 			 */
 			hideBars : function () {
 				var bars = $( '#swipebox-top-bar, #swipebox-bottom-bar' );
-				bars.removeClass( 'visible-bars' );
+				if ( this.doCssTrans() ) {
+					bars.removeClass( 'visible-bars' );
+				} else {
+					$( '#swipebox-top-bar' ).animate( { top : '-50px' }, 500 );
+					$( '#swipebox-bottom-bar' ).animate( { bottom : '-50px' }, 500 );
+					setTimeout( function() {
+						bars.removeClass( 'visible-bars' );
+					}, 1000 );
+				}
 			},
 
 			/**
@@ -615,10 +624,6 @@
 				} else if ( index === elements.length - 1 && plugin.settings.loopAtEnd !== true ) {
 					$( '#swipebox-next' ).addClass( 'disabled' );
 				}
-
-				// reshow bars on each navigation
-				this.showBars();
-				this.setTimeout();
 			},
 
 			/**
@@ -682,9 +687,17 @@
 					$this.loadMedia( src, function() {
 						slide.removeClass( 'slide-loading' );
 						slide.html( this );
+
+						if ( plugin.settings.afterMedia ) {
+							plugin.settings.afterMedia( index );
+						}
 					} );
 				} else {
 					slide.html( $this.getVideo( src ) );
+
+					if ( plugin.settings.afterMedia ) {
+						plugin.settings.afterMedia( index );
+					}
 				}
 
 			},
@@ -694,27 +707,16 @@
 			 */
 			setTitle : function ( index ) {
 				var title = null;
-				var caption = null;
 
 				$( '#swipebox-title' ).empty();
 
 				if ( elements[ index ] !== undefined ) {
 					title = elements[ index ].title;
-					caption = elements[ index ].caption;
 				}
 
-				if ( title || caption ) {
+				if ( title ) {
 					$( '#swipebox-top-bar' ).show();
-
-					if(title) {
-						var tdiv = $('<div></div>').addClass('title').text(title);
-						$('#swipebox-title').append(tdiv);
-					}
-
-					if(caption) {
-						var cdiv = $('<div></div>').addClass('caption').text(caption);
-						$('#swipebox-title').append(cdiv);
-					}
+					$( '#swipebox-title' ).append( title );
 				} else {
 					$( '#swipebox-top-bar' ).hide();
 				}
@@ -849,7 +851,7 @@
 					$this.setSlide( index );
 					$this.preloadMedia( index+1 );
 					if ( plugin.settings.nextSlide ) {
-						plugin.settings.nextSlide();
+						plugin.settings.nextSlide(index);
 					}
 				} else {
 
@@ -861,7 +863,7 @@
 						$this.setSlide( index );
 						$this.preloadMedia( index + 1 );
 						if ( plugin.settings.nextSlide ) {
-							plugin.settings.nextSlide();
+							plugin.settings.nextSlide(index);
 						}
 					} else {
 						$( '#swipebox-overlay' ).addClass( 'rightSpring' );
@@ -885,7 +887,7 @@
 					this.setSlide( index );
 					this.preloadMedia( index-1 );
 					if ( plugin.settings.prevSlide ) {
-						plugin.settings.prevSlide();
+						plugin.settings.prevSlide(index);
 					}
 				} else {
 					$( '#swipebox-overlay' ).addClass( 'leftSpring' );
@@ -894,12 +896,12 @@
 					}, 500 );
 				}
 			},
-
-			nextSlide : function () {
+			/* jshint unused:false */
+			nextSlide : function ( index ) {
 				// Callback for next slide
 			},
 
-			prevSlide : function () {
+			prevSlide : function ( index ) {
 				// Callback for prev slide
 			},
 

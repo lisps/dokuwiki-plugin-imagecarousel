@@ -5,8 +5,11 @@ jQuery(function(){
 	jQuery(".slick").slick();
 	
 	jQuery.expr[':'].onlydirect = function(elem, index, meta) {
-		  return !new RegExp('detail.php', 'i').test(jQuery(elem).attr('href'));
-	}
+		 return (
+				  new RegExp('fetch.php', 'i').test(jQuery(elem).attr('href')) ||
+				  new RegExp('_media', 'i').test(jQuery(elem).attr('href'))
+		);
+	};
 
 		
 	jQuery(".slick a.media:onlydirect()").swipebox({

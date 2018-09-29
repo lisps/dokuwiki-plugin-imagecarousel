@@ -61,17 +61,17 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
      * @param Doku_Handler    $handler The handler
      * @return array Data for the renderer
      */
-    public function handle($match, $state, $pos, Doku_Handler &$handler){
+    public function handle($match, $state, $pos, Doku_Handler $handler){
         $data = array();
         $data['state'] = $state;
 		switch($state) {
 			case DOKU_LEXER_ENTER:
 				$match = substr($match, 9,-1);  // strip markup
-				$flags = array_merge(
+				$flags = $this->parseFlags($match);
+				$flags['slick'] = json_encode(array_merge(
 						$this->getDefaultFlags(),
-						$this->parseFlags($match)
-				);
-				$flags = json_encode($flags);
+						$flags['slick']
+				));
 				$data['flags'] = $flags;
 				break;
 			case DOKU_LEXER_UNMATCHED:
@@ -102,11 +102,12 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
      * @param array          $data      The data from the handler() function
      * @return bool If rendering was successful.
      */
-    public function render($mode, Doku_Renderer &$renderer, $data) {
+    public function render($mode, Doku_Renderer $renderer, $data) {
         if($mode != 'xhtml') return false;
 		
         if($data['state'] === DOKU_LEXER_ENTER) {
-        	$renderer->doc .= '<div class="slick" data-slick=\''.$data['flags'].'\'>';
+        	$width = ' style="width:'.hsc($data['flags']['self']['width']).'" ';
+        	$renderer->doc .= '<div class="slick '.$data['flags']['self']['position'].'" data-slick=\''.$data['flags']['slick'].'\' '.$width.'>';
         } else if($data['state'] === DOKU_LEXER_EXIT) {
         	$renderer->doc .= '</div></div>';
         } else if($data['state'] === DOKU_LEXER_MATCHED) {
@@ -125,15 +126,41 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
     
     protected function parseFlags($confString) {
     	$confString = explode('&',$confString);
-    	$flags = array();
+    	$flags = array(
+    		'slick' => array(),
+    		'self' => array(
+    			'position' => 'center',
+    			'width' => '100%'
+    		),
+    	);
     	foreach($confString as $flag) {
+    		
+    		switch($flag) {
+    			case 'center':
+    				$flags['self']['position'] = 'center';
+    				break;
+    			case 'left':
+    				$flags['self']['position'] = 'left';
+    				break;    		
+    		}
+    		
     		$tmp = explode('=',$flag,2);
     		if(count($tmp) === 2) {
-    			if($tmp[1] === "true") $tmp[1] = true;
-    			else if($tmp[1] === "false") $tmp[1] = false;
-    			else if(is_numeric($tmp[1])) $tmp[1] = intval($tmp[1]);
-    			$flags[$tmp[0]] = $tmp[1];
-    		}
+    			
+    			switch($tmp[0]) {
+    				case 'width':
+    					$flags['self']['width'] = $tmp[1];
+    					break;
+    				default: //slick parameter
+    					if($tmp[1] === "true") $tmp[1] = true;
+    					else if($tmp[1] === "false") $tmp[1] = false;
+    					else if(is_numeric($tmp[1])) $tmp[1] = intval($tmp[1]);
+    					$flags['slick'][$tmp[0]] = $tmp[1];
+    					break;
+    			}
+    			
+    			
+    		} 
     	}
     	 
     	return $flags;
