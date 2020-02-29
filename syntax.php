@@ -50,7 +50,7 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
        $this->Lexer->addExitPattern('</carousel>','plugin_imagecarousel');
    }
    
-   protected $first_item = false;
+   protected $first_item = [];
 
     /**
      * Handle matches of the imagecarousel syntax
@@ -62,6 +62,7 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
      * @return array Data for the renderer
      */
     public function handle($match, $state, $pos, Doku_Handler $handler){
+        global $ID;
         $data = array();
         $data['state'] = $state;
 		switch($state) {
@@ -80,12 +81,12 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
 				}	
 				break;
 			case DOKU_LEXER_EXIT:
-				$this->first_item = false;
+			    $this->first_item[$ID] = false;
 				break;
 			case DOKU_LEXER_MATCHED:
 				if($match === "\n  *") {
-					if(!$this->first_item) {
-						$this->first_item = true;
+				    if(!isset($this->first_item[$ID]) || !$this->first_item[$ID]) {
+					    $this->first_item[$ID] = true;
 						$data['first_item'] = true;
 					}
 				}
@@ -108,13 +109,14 @@ class syntax_plugin_imagecarousel extends DokuWiki_Syntax_Plugin {
         if($data['state'] === DOKU_LEXER_ENTER) {
         	$width = ' style="width:'.hsc($data['flags']['self']['width']).'" ';
         	$renderer->doc .= '<div class="slick '.$data['flags']['self']['position'].'" data-slick=\''.$data['flags']['slick'].'\' '.$width.'>';
+        	$renderer->doc .= '<div>';
         } else if($data['state'] === DOKU_LEXER_EXIT) {
         	$renderer->doc .= '</div></div>';
         } else if($data['state'] === DOKU_LEXER_MATCHED) {
         	if(!isset($data['first_item'])) {
         		$renderer->doc .= '</div>';
+        		$renderer->doc .= '<div>';
         	}
-        	$renderer->doc .= '<div>';
         }
         return true;
     }
